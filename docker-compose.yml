@@ -1,0 +1,33 @@
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    volumes:
+      - ${VAULT_PATH:-./vault}:/app/vault
+    environment:
+      - VAULT_PATH=/app/vault
+      - ALLOWED_ORIGINS=http://localhost:${CLIENT_PORT:-3000}
+    networks:
+      - md-network
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "${CLIENT_PORT:-3000}:3000"
+    environment:
+      - BACKEND_URL=http://server:8000
+    depends_on:
+      - server
+    networks:
+      - md-network
+    restart: unless-stopped
+
+networks:
+  md-network:
+    driver: bridge
