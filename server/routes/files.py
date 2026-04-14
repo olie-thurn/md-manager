@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -194,6 +194,55 @@ async def get_file_tree() -> list[FileNode]:
     return _build_tree(vault, vault)
 
 
+@router.post("/upload", status_code=201)
+async def upload_file(
+    file: UploadFile,
+    destination: str = Form(""),
+    filename: str = Form(...),
+) -> dict[str, str]:
+    """
+    Upload a Markdown file to the vault, with auto-renaming on conflicts.
+
+    Args:
+        file: Uploaded multipart file.
+        destination: Optional destination folder path relative to vault root.
+        filename: Desired file name, including .md extension.
+
+    Returns:
+        Dict containing the created vault-relative path.
+    """
+    if not filename.endswith(".md"):
+        raise HTTPException(status_code=400, detail="Only .md files are supported")
+
+    vault = get_vault_path()
+    _validate_path(destination, vault)
+
+    relative_target = filename if destination == "" else (Path(destination) / filename).as_posix()
+    target = _validate_path(relative_target, vault)
+
+    if target.exists():
+        stem = filename[:-3]
+        resolved = False
+        for idx in range(1, 1000):
+            candidate_name = f"{stem}_{idx}.md"
+            candidate_relative = (
+                candidate_name if destination == "" else (Path(destination) / candidate_name).as_posix()
+            )
+            candidate_target = _validate_path(candidate_relative, vault)
+            if not candidate_target.exists():
+                target = candidate_target
+                resolved = True
+                break
+        if not resolved:
+            raise HTTPException(status_code=409, detail="Could not resolve filename conflict")
+
+    content = await file.read()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(content)
+
+    return {"path": target.relative_to(vault.resolve()).as_posix()}
+
+
 @router.get("/{path:path}", response_model=FileContent)
 async def get_file(path: str) -> FileContent:
     """
@@ -374,4 +423,3 @@ async def delete_file_or_folder(path: str) -> dict[str, str]:
         target.unlink()
 
     return {"path": path}
-

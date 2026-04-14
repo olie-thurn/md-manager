@@ -3,3 +3,4 @@ uvicorn[standard]>=0.29.0
 watchfiles>=0.21.0
 python-frontmatter>=1.1.0
 pydantic>=2.7.0
+python-multipart
