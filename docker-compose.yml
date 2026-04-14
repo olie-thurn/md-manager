@@ -18,6 +18,8 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        - BACKEND_URL=http://server:8000
     ports:
       - "${CLIENT_PORT:-3000}:3000"
     environment:

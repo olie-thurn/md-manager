@@ -8,6 +8,7 @@ import ContextMenu from "./ContextMenu";
 import ConfirmDialog from "./ConfirmDialog";
 import NewFileModal from "./NewFileModal";
 import RenameModal from "./RenameModal";
+import UploadFileModal from "./UploadFileModal";
 import { useUnsavedChanges } from "../lib/unsavedChangesContext";
 import { useToast } from "../hooks/useToast";
 
@@ -352,6 +353,7 @@ export default function FileTree({
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [modal, setModal] = useState<ModalState>({ kind: "none" });
+  const [uploadModalOpen, setUploadModalOpen] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
@@ -413,6 +415,12 @@ export default function FileTree({
     if (oldPath !== null && oldPath === activePath) {
       router.replace(`/editor/${encodeURIComponent(newPath)}`);
     }
+  }
+
+  function handleUploadSuccess(path: string): void {
+    void path;
+    setUploadModalOpen(false);
+    refresh();
   }
 
   async function handleDelete(): Promise<void> {
@@ -514,6 +522,28 @@ export default function FileTree({
         </button>
       </div>
 
+      <div className="mb-2 flex items-center px-2">
+        <button
+          type="button"
+          title="Upload a .md file to the vault"
+          aria-label="Upload a .md file to the vault"
+          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-neutral-300 py-1.5 text-xs font-medium text-neutral-500 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-neutral-700 dark:text-neutral-500 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+          onClick={() => setUploadModalOpen(true)}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-3.5 w-3.5"
+            aria-hidden="true"
+          >
+            <path d="M9.25 13.25a.75.75 0 0 0 1.5 0V4.636l2.955 3.129a.75.75 0 0 0 1.09-1.03l-4.25-4.5a.75.75 0 0 0-1.09 0l-4.25 4.5a.75.75 0 1 0 1.09 1.03L9.25 4.636v8.614Z" />
+            <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+          </svg>
+          <span>Upload file</span>
+        </button>
+      </div>
+
       {/* File tree body */}
       {renderTreeBody()}
 
@@ -566,6 +596,14 @@ export default function FileTree({
           error={deleteError}
           onConfirm={() => void handleDelete()}
           onCancel={closeModal}
+        />
+      )}
+
+      {uploadModalOpen && (
+        <UploadFileModal
+          tree={tree}
+          onSuccess={handleUploadSuccess}
+          onCancel={() => setUploadModalOpen(false)}
         />
       )}
     </>

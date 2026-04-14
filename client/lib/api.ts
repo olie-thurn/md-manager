@@ -117,3 +117,33 @@ export async function search(
   }
   return fetchApi<SearchResult[]>(`/search?${params.toString()}`);
 }
+
+/** POST /files/upload — Upload a file via multipart/form-data. */
+export async function uploadFile(
+  file: File,
+  destination: string,
+  filename: string
+): Promise<{ path: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("destination", destination);
+  form.append("filename", filename);
+
+  const response = await fetch(`${API_BASE_URL}/files/upload`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!response.ok) {
+    let message: string;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      message = body.detail ?? response.statusText;
+    } catch {
+      message = response.statusText;
+    }
+    throw new Error(`HTTP ${response.status}: ${message}`);
+  }
+
+  return response.json() as Promise<{ path: string }>;
+}
